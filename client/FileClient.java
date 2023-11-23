@@ -31,15 +31,19 @@ public class FileClient {
 
                         // Read the file content and send it to the server
                         try (BufferedReader fileReader = new BufferedReader(new FileReader(filename))) {
-                            String line;
-                            while ((line = fileReader.readLine()) != null) {
-                                writer.write(line + System.lineSeparator());
+                            char[] buffer = new char[1024];
+                            int bytesRead;
+                            while ((bytesRead = fileReader.read(buffer)) != -1) {
+                                writer.write(buffer, 0, bytesRead);
+                                writer.flush();
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-
                     }
+                    // Signal the end of the file
+                    writer.write("\nEOF\n");
+                    writer.flush();
                 }
 
                 // Receive and display server response

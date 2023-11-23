@@ -151,36 +151,42 @@ public class FileServer {
     }
 
     private static void handleStore(String clientHandle, String[] parts, BufferedReader reader, BufferedWriter writer) throws IOException {
-        if (clientHandle != null && parts.length == 2) {
+        if (isValidStoreCommand(clientHandle, parts)) {
             String filename = parts[1];
             String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
 
             // Create a subfolder for each client if not exists
             String clientFolder = UPLOADS_FOLDER + clientHandle + "/";
             File clientFolderFile = new File(clientFolder);
-            if (!clientFolderFile.exists()) {
-                clientFolderFile.mkdirs();
+            if (!clientFolderFile.exists() && !clientFolderFile.mkdirs()) {
+                writer.write("Error: Unable to create client folder.\n");
+                writer.flush();
+                return;
             }
 
             // Save the file in the client's subfolder
             String filePath = clientFolder + filename;
-            try (FileWriter fileWriter = new FileWriter(filePath)) {
+            try (BufferedWriter fileWriter = new BufferedWriter(new FileWriter(filePath))) {
                 // Read and write the file content
                 String line;
-                while ((line = reader.readLine()) != null && !line.isEmpty()) {
-                    fileWriter.write(line + System.lineSeparator());
+                while ((line = reader.readLine()) != null && !line.isEmpty() && !line.equals("EOF")) {
+                    fileWriter.write(line);
+                    fileWriter.newLine();  // Use newLine() to handle different line endings
                 }
+                writer.write(clientHandle + "<" + timestamp + ">: Uploaded " + filename + "\n");
+                writer.flush();
             } catch (IOException e) {
-                e.printStackTrace();
+                writer.write("Error: Failed to save the file.\n");
+                writer.flush();
+                e.printStackTrace(); // Log the exception for debugging purposes
             }
-
-
-            writer.write(clientHandle + "<" + timestamp + ">: Uploaded " + filename + "\n");
-            writer.flush();
         } else {
             writer.write("Error: Invalid /store command syntax or not registered.\n");
             writer.flush();
         }
+    }
+    private static boolean isValidStoreCommand(String clientHandle, String[] parts) {
+        return clientHandle != null && parts.length == 2;
     }
 
     private static void handleDir(BufferedWriter writer) throws IOException {
