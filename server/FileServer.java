@@ -185,6 +185,7 @@ public class FileServer {
             writer.flush();
         }
     }
+
     private static boolean isValidStoreCommand(String clientHandle, String[] parts) {
         return clientHandle != null && parts.length == 2;
     }
@@ -209,15 +210,41 @@ public class FileServer {
     private static void handleGet(String clientHandle, String[] parts, BufferedWriter writer) throws IOException {
         if (clientHandle != null && parts.length == 2) {
             String filename = parts[1];
+            String filePath = UPLOADS_FOLDER + clientHandle + "/" + filename;
 
-            // Implement file retrieval logic here (e.g., send the file to the client)
-            writer.write("File received from Server: " + filename + "\n");
-            writer.flush();
+            // Check if the file exists
+            File file = new File(filePath);
+            if (file.exists()) {
+                try (BufferedReader fileReader = new BufferedReader(new FileReader(filePath))) {
+                    char[] buffer = new char[1024];
+                    int bytesRead;
+                    while ((bytesRead = fileReader.read(buffer)) != -1) {
+                        writer.write(buffer, 0, bytesRead);
+                        writer.flush();
+                    }
+                } catch (IOException e) {
+                    writer.write("Error: Failed to read the file.\n");
+                    writer.flush();
+                    e.printStackTrace(); // Log the exception for debugging purposes
+                }
+            } else {
+                writer.write("Error: File not found on the server.\n");
+                writer.flush();
+            }
         } else {
             writer.write("Error: Invalid /get command syntax or not registered.\n");
             writer.flush();
         }
+
+        // Signal the end of the file
+        writer.write("\nEOF\n");
+        writer.flush();
+
+        // Wait for a new command
+        writer.write("Enter command: ");
+        writer.flush();
     }
+
 
     private static void handleCommandHelp(BufferedWriter writer) throws IOException {
         // Provide a list of available commands

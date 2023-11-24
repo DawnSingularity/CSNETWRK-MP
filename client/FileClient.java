@@ -44,6 +44,14 @@ public class FileClient {
                     // Signal the end of the file
                     writer.write("\nEOF\n");
                     writer.flush();
+                } else if (command.toLowerCase().startsWith("/get")) {
+                    // Get the file name from the command
+                    String[] parts = command.split(" ");
+                    if (parts.length == 2) {
+                        String filename = parts[1];
+                        // Handle file retrieval response
+                        handleFileRetrieval(reader, filename);
+                    }
                 }
 
                 // Receive and display server response
@@ -58,6 +66,19 @@ public class FileClient {
 
             socket.close();
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void handleFileRetrieval(BufferedReader reader, String filename) throws IOException {
+        try (BufferedWriter fileWriter = new BufferedWriter(new FileWriter(filename))) {
+            int character;
+            while ((character = reader.read()) != -1 && character != '\n') {
+                fileWriter.write(character);
+            }
+            System.out.println("File received: " + filename);
+        } catch (IOException e) {
+            System.out.println("Error: Failed to save the file.");
             e.printStackTrace();
         }
     }
